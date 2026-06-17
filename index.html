@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loop Lab Arcade</title>
+  <style>
+    :root {
+      --ink: #16202a;
+      --panel: #fff7d6;
+      --panel-2: #fdf0b2;
+      --track: #202b36;
+      --hot: #ff3f57;
+      --mint: #20d6a2;
+      --cyan: #19b8ff;
+      --sun: #ffd84d;
+      --violet: #8767ff;
+      --line: rgba(22, 32, 42, 0.18);
+      --shadow: 0 20px 60px rgba(14, 25, 35, 0.25);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-width: 980px;
+      min-height: 100vh;
+      overflow: hidden;
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(255, 216, 77, 0.42), transparent 26%),
+        linear-gradient(135deg, #13b6d8 0%, #4dd6a4 42%, #ffd84d 100%);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    #app {
+      display: grid;
+      grid-template-columns: minmax(700px, 1fr) 268px;
+      gap: 12px;
+      width: 100vw;
+      height: 100vh;
+      padding: 12px;
+    }
+
+    .stage {
+      position: relative;
+      overflow: hidden;
+      border: 4px solid var(--ink);
+      border-radius: 8px;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.22) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.22) 1px, transparent 1px),
+        linear-gradient(180deg, #8cecff 0%, #e6fbff 48%, #ace86d 48%, #56bd65 100%);
+      background-size: 48px 48px, 48px 48px, auto;
+      box-shadow: var(--shadow);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+    }
+
+    .hud-top {
+      position: absolute;
+      top: 12px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .logo {
+      display: grid;
+      width: 40px;
+      height: 40px;
+      place-items: center;
+      border: 3px solid var(--ink);
+      border-radius: 8px;
+      background: var(--sun);
+      box-shadow: 5px 5px 0 var(--ink);
+      font-size: 22px;
+      font-weight: 950;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      text-shadow: 2px 2px 0 rgba(255, 255, 255, 0.85);
+    }
+
+    .mode-chip {
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      padding: 7px 12px;
+      background: #fff;
+      box-shadow: 4px 4px 0 var(--ink);
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .panel {
+      display: flex;
+      min-height: 0;
+      flex-direction: column;
+      gap: 12px;
+      overflow: hidden;
+      border: 4px solid var(--ink);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .panel-header {
+      padding: 12px 14px 9px;
+      border-bottom: 3px solid var(--ink);
+      background: var(--hot);
+      color: #fff;
+    }
+
+    .panel-header h2 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      text-shadow: 2px 2px 0 var(--ink);
+    }
+
+    .panel-body {
+      display: flex;
+      min-height: 0;
+      flex: 1;
+      flex-direction: column;
+      gap: 9px;
+      overflow-y: auto;
+      padding: 10px;
+    }
+
+    .controls {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .button {
+      min-height: 38px;
+      border: 3px solid var(--ink);
+      border-radius: 8px;
+      color: var(--ink);
+      background: #fff;
+      box-shadow: 4px 4px 0 var(--ink);
+      font-weight: 950;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+    }
+
+    .button:hover {
+      transform: translate(1px, 1px);
+      box-shadow: 3px 3px 0 var(--ink);
+    }
+
+    .button:active {
+      transform: translate(4px, 4px);
+      box-shadow: 0 0 0 var(--ink);
+    }
+
+    .button.primary {
+      background: var(--mint);
+    }
+
+    .button.warn {
+      background: var(--sun);
+    }
+
+    .button.full {
+      grid-column: 1 / -1;
+    }
+
+    .readout-grid {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .readout {
+      border: 3px solid var(--ink);
+      border-radius: 8px;
+      padding: 8px;
+      background: #fff;
+    }
+
+    .readout span {
+      display: block;
+      color: rgba(22, 32, 42, 0.64);
+      font-size: 11px;
+      font-weight: 950;
+      text-transform: uppercase;
+    }
+
+    .readout strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 20px;
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .slider-box,
+    .chart-box,
+    .nerd-box {
+      border: 3px solid var(--ink);
+      border-radius: 8px;
+      background: #fff;
+      padding: 9px;
+    }
+
+    .slider-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--hot);
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 44px 1fr 58px;
+      align-items: center;
+      gap: 8px;
+      margin: 9px 0;
+      font-size: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+    }
+
+    .bar-track {
+      height: 18px;
+      overflow: hidden;
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      background: #f1f1f1;
+    }
+
+    .bar {
+      width: 0;
+      height: 100%;
+      border-right: 2px solid var(--ink);
+      transition: width 120ms linear;
+    }
+
+    .bar.pe { background: var(--cyan); }
+    .bar.ke { background: var(--hot); }
+    .bar.g { background: var(--violet); }
+
+    .nerd-box {
+      display: none;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 11px;
+      line-height: 1.55;
+      background: #16202a;
+      color: #dffdfb;
+    }
+
+    .nerd-box.show {
+      display: block;
+    }
+
+    .nerd-box h3 {
+      margin: 0 0 8px;
+      color: var(--sun);
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      font-size: 13px;
+      text-transform: uppercase;
+    }
+
+    .tiny {
+      color: rgba(22, 32, 42, 0.66);
+      font-size: 12px;
+      line-height: 1.4;
+      font-weight: 750;
+    }
+
+    .warning {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      display: none;
+      width: min(520px, calc(100% - 80px));
+      transform: translate(-50%, -50%);
+      border: 4px solid var(--ink);
+      border-radius: 8px;
+      padding: 18px;
+      background: #fff;
+      box-shadow: 10px 10px 0 var(--ink), 0 24px 80px rgba(0, 0, 0, 0.28);
+      z-index: 5;
+    }
+
+    .warning.show {
+      display: block;
+    }
+
+    .warning h2 {
+      margin: 0 0 8px;
+      color: var(--hot);
+      font-size: 30px;
+      line-height: 1;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .warning p {
+      margin: 0 0 16px;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .warning-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .chaos {
+      transform: rotate(-1deg);
+      background: var(--sun);
+      font-size: 12px;
+    }
+
+    .toast {
+      position: absolute;
+      left: 18px;
+      bottom: 16px;
+      max-width: 620px;
+      border: 3px solid var(--ink);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 4px 4px 0 var(--ink);
+      font-size: 13px;
+      font-weight: 850;
+      pointer-events: none;
+    }
+
+    .sandbox-tools {
+      position: absolute;
+      right: 14px;
+      bottom: 14px;
+      display: grid;
+      grid-template-columns: repeat(4, 38px);
+      gap: 8px;
+      z-index: 3;
+    }
+
+    .tool-button {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border: 3px solid var(--ink);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 3px 3px 0 var(--ink);
+      color: var(--ink);
+      font-size: 17px;
+      font-weight: 950;
+      cursor: pointer;
+      transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+    }
+
+    .tool-button:hover,
+    .tool-button.active {
+      background: var(--sun);
+    }
+
+    .tool-button:active {
+      transform: translate(3px, 3px);
+      box-shadow: 0 0 0 var(--ink);
+    }
+  </style>
+</head>
+<body>
+  <main id="app">
+    <section class="stage" aria-label="Interactive roller coaster canvas">
+      <canvas id="simulationCanvas"></canvas>
+      <div class="hud-top">
+        <div class="brand">
+          <div class="logo">∞</div>
+          <h1>Loop Lab Arcade</h1>
+        </div>
+        <div class="mode-chip" id="modeChip">Edit Mode</div>
+      </div>
+      <div class="warning" id="warningDialog" role="dialog" aria-modal="false" aria-labelledby="warningTitle">
+        <h2 id="warningTitle">Physics is sweating</h2>
+        <p>The track has tight bends or rough energy math. The cart will still try, but the G-force readout may get dramatic.</p>
+        <div class="warning-actions">
+          <button class="button primary" id="fixButton">Smooth it</button>
+          <button class="button chaos" id="chaosButton">Do you think I care about physics?</button>
+        </div>
+      </div>
+      <div class="toast" id="hintText">Drag anchors or handles. Paired handles mirror each other for smooth C1 joins.</div>
+      <div class="sandbox-tools" aria-label="Sandbox tools">
+        <button class="tool-button" id="addNodeButton" title="Add node">+</button>
+        <button class="tool-button" id="zoomOutButton" title="Zoom out">−</button>
+        <button class="tool-button" id="zoomInButton" title="Zoom in">+</button>
+        <button class="tool-button" id="fitButton" title="Fit track">□</button>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="panel-header">
+        <h2>Telemetry</h2>
+      </div>
+      <div class="panel-body">
+        <div class="controls">
+          <button class="button primary" id="modeButton">Run</button>
+          <button class="button warn" id="resetButton">Reset</button>
+          <button class="button full" id="statsButton">Stats for nerds</button>
+        </div>
+
+        <div class="slider-box">
+          <div class="slider-head">
+            <label for="startVelocity">Starting Velocity</label>
+            <strong id="startVelocityLabel">7.0 m/s</strong>
+          </div>
+          <input id="startVelocity" type="range" min="0" max="24" step="0.5" value="7">
+        </div>
+
+        <div class="readout-grid">
+          <div class="readout">
+            <span>Velocity</span>
+            <strong id="velocityOut">0.0</strong>
+          </div>
+          <div class="readout">
+            <span>G-Force</span>
+            <strong id="gForceOut">1.00</strong>
+          </div>
+          <div class="readout">
+            <span>Potential</span>
+            <strong id="peOut">0</strong>
+          </div>
+          <div class="readout">
+            <span>Kinetic</span>
+            <strong id="keOut">0</strong>
+          </div>
+        </div>
+
+        <div class="chart-box">
+          <div class="bar-row">
+            <span>PE</span>
+            <div class="bar-track"><div class="bar pe" id="peBar"></div></div>
+            <span id="pePct">0%</span>
+          </div>
+          <div class="bar-row">
+            <span>KE</span>
+            <div class="bar-track"><div class="bar ke" id="keBar"></div></div>
+            <span id="kePct">0%</span>
+          </div>
+          <div class="bar-row">
+            <span>G</span>
+            <div class="bar-track"><div class="bar g" id="gBar"></div></div>
+            <span id="gPct">1.0</span>
+          </div>
+        </div>
+
+        <div class="nerd-box" id="nerdBox">
+          <h3>Stats for nerds</h3>
+          <div id="nerdText"></div>
+        </div>
+
+        <p class="tiny">The cart is locked to the spline, with no friction. If energy runs out while climbing, signed motion reverses naturally.</p>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    (() => {
+      const GRAVITY = 9.81;
+      const PIXELS_PER_METER = 34;
+      const CART_MASS = 1;
+      const SAMPLE_STEP = 2;
+
+      class Vector2D {
+        constructor(x = 0, y = 0) {
+          this.x = x;
+          this.y = y;
+        }
+
+        clone() {
+          return new Vector2D(this.x, this.y);
+        }
+
+        add(v) {
+          return new Vector2D(this.x + v.x, this.y + v.y);
+        }
+
+        sub(v) {
+          return new Vector2D(this.x - v.x, this.y - v.y);
+        }
+
+        mult(n) {
+          return new Vector2D(this.x * n, this.y * n);
+        }
+
+        dot(v) {
+          return this.x * v.x + this.y * v.y;
+        }
+
+        cross(v) {
+          return this.x * v.y - this.y * v.x;
+        }
+
+        mag() {
+          return Math.hypot(this.x, this.y);
+        }
+
+        normalize() {
+          const length = this.mag();
+          return length > 0.0001 ? this.mult(1 / length) : new Vector2D(1, 0);
+        }
+      }
+
+      class TrackSegment {
+        constructor(p0, p1, p2, p3, label) {
+          this.p0 = p0;
+          this.p1 = p1;
+          this.p2 = p2;
+          this.p3 = p3;
+          this.label = label;
+        }
+
+        getPosition(t) {
+          const u = 1 - t;
+          return this.p0.mult(u * u * u)
+            .add(this.p1.mult(3 * u * u * t))
+            .add(this.p2.mult(3 * u * t * t))
+            .add(this.p3.mult(t * t * t));
+        }
+
+        getTangent(t) {
+          const u = 1 - t;
+          return this.p1.sub(this.p0).mult(3 * u * u)
+            .add(this.p2.sub(this.p1).mult(6 * u * t))
+            .add(this.p3.sub(this.p2).mult(3 * t * t));
+        }
+      }
+
+      class CoasterEngine {
+        constructor(app) {
+          this.app = app;
+          this.lut = [];
+          this.totalLength = 1;
+          this.cartDist = 0;
+          this.direction = 1;
+          this.energyTotal = 0;
+          this.velocity = 0;
+          this.gForce = 1;
+          this.potentialEnergy = 0;
+          this.kineticEnergy = 0;
+          this.stoppedAtEnd = false;
+          this.warningOpen = false;
+        }
+
+        generateLUT() {
+          const dense = [];
+          const segments = this.app.getSegments();
+          segments.forEach((segment, segmentIndex) => {
+            const steps = 90;
+            for (let i = 0; i <= steps; i += 1) {
+              if (segmentIndex > 0 && i === 0) continue;
+              const t = i / steps;
+              const position = segment.getPosition(t);
+              const tangent = segment.getTangent(t).normalize();
+              dense.push({ position, tangent, segmentIndex, t });
+            }
+          });
+
+          if (dense.length < 2) return;
+          const lut = [{
+            distance: 0,
+            position: dense[0].position,
+            tangent: dense[0].tangent,
+            segmentIndex: dense[0].segmentIndex,
+            t: dense[0].t
+          }];
+
+          let accumulated = 0;
+          let nextSample = SAMPLE_STEP;
+          for (let i = 1; i < dense.length; i += 1) {
+            const a = dense[i - 1];
+            const b = dense[i];
+            const delta = b.position.sub(a.position);
+            const length = delta.mag();
+            if (length < 0.001) continue;
+
+            while (accumulated + length >= nextSample) {
+              const ratio = (nextSample - accumulated) / length;
+              const position = a.position.add(delta.mult(ratio));
+              const tangent = a.tangent.mult(1 - ratio).add(b.tangent.mult(ratio)).normalize();
+              lut.push({ distance: nextSample, position, tangent, segmentIndex: b.segmentIndex, t: b.t });
+              nextSample += SAMPLE_STEP;
+            }
+            accumulated += length;
+          }
+
+          const last = dense[dense.length - 1];
+          lut.push({
+            distance: accumulated,
+            position: last.position,
+            tangent: last.tangent,
+            segmentIndex: last.segmentIndex,
+            t: 1
+          });
+          this.lut = lut;
+          this.totalLength = Math.max(accumulated, 1);
+          this.cartDist = Math.min(this.cartDist, this.totalLength);
+          this.computeCurvature();
+          if (this.app.mode !== "run") this.resetEnergy();
+          this.checkTrackHealth();
+        }
+
+        computeCurvature() {
+          for (let i = 0; i < this.lut.length; i += 1) {
+            const prev = this.lut[Math.max(0, i - 4)];
+            const here = this.lut[i];
+            const next = this.lut[Math.min(this.lut.length - 1, i + 4)];
+            const a = here.position.sub(prev.position);
+            const b = next.position.sub(here.position);
+            const chord = next.position.sub(prev.position).mag();
+            const area2 = Math.abs(a.cross(b));
+            const denom = area2;
+            const radius = denom > 0.001 ? (a.mag() * b.mag() * chord) / (2 * denom) : 99999;
+            here.radius = Math.max(8, Math.min(radius, 99999));
+            here.curveSign = Math.sign(a.cross(b)) || 1;
+          }
+        }
+
+        reset() {
+          this.cartDist = 0;
+          this.direction = 1;
+          this.velocity = 0;
+          this.stoppedAtEnd = false;
+          this.resetEnergy();
+          this.updateTelemetry();
+        }
+
+        resetEnergy() {
+          const start = this.getSampleAt(0).position;
+          const initialVelocity = this.app.startVelocity;
+          this.energyTotal = this.heightEnergy(start.y) + 0.5 * CART_MASS * initialVelocity * initialVelocity;
+        }
+
+        heightEnergy(y) {
+          const heightMeters = Math.max(0, (this.app.groundY - y) / PIXELS_PER_METER);
+          return CART_MASS * GRAVITY * heightMeters;
+        }
+
+        getSampleAt(distance) {
+          if (!this.lut.length) return { position: new Vector2D(0, 0), tangent: new Vector2D(1, 0), radius: 99999 };
+          const clamped = Math.max(0, Math.min(this.totalLength, distance));
+          const index = Math.max(0, Math.min(this.lut.length - 1, Math.round(clamped / SAMPLE_STEP)));
+          return this.lut[index];
+        }
+
+        updatePhysics(dt) {
+          if (!this.lut.length) return;
+          if (this.stoppedAtEnd) {
+            this.velocity = 0;
+            this.updateTelemetry();
+            return;
+          }
+          const sample = this.getSampleAt(this.cartDist);
+          this.potentialEnergy = this.heightEnergy(sample.position.y);
+          this.kineticEnergy = this.energyTotal - this.potentialEnergy;
+
+          if (this.kineticEnergy <= 0.02) {
+            this.direction *= -1;
+            this.velocity = 0;
+            this.kineticEnergy = 0;
+            this.cartDist = Math.max(0, Math.min(this.totalLength, this.cartDist + this.direction * SAMPLE_STEP * 2));
+            this.app.hintText.textContent = "Energy ceiling reached. The cart is rolling back under the same energy budget.";
+            this.updateTelemetry();
+            return;
+          }
+
+          const speed = Math.sqrt(Math.max(0, 2 * this.kineticEnergy / CART_MASS));
+          this.velocity = this.direction * speed;
+          this.cartDist += this.velocity * PIXELS_PER_METER * dt;
+
+          if (this.cartDist <= 0) {
+            this.cartDist = 0;
+            this.stopAtEndpoint("start");
+          }
+          if (this.cartDist >= this.totalLength) {
+            this.cartDist = this.totalLength;
+            this.stopAtEndpoint("end");
+          }
+
+          this.updateTelemetry();
+        }
+
+        stopAtEndpoint(whichEnd) {
+          const endpoint = this.getSampleAt(this.cartDist).position;
+          this.velocity = 0;
+          this.kineticEnergy = 0;
+          this.energyTotal = this.heightEnergy(endpoint.y);
+          this.stoppedAtEnd = true;
+          this.app.hintText.textContent = whichEnd === "end"
+            ? "End of track reached. No magic rebound: the run has settled at the terminal stop."
+            : "Back at the start stop. Add more starting velocity or edit the track to launch again.";
+        }
+
+        updateTelemetry() {
+          const sample = this.getSampleAt(this.cartDist);
+          this.potentialEnergy = this.heightEnergy(sample.position.y);
+          this.kineticEnergy = Math.max(0, this.energyTotal - this.potentialEnergy);
+          const theta = Math.atan2(sample.tangent.y, sample.tangent.x);
+          const centripetal = (this.velocity * this.velocity) / Math.max(sample.radius / PIXELS_PER_METER, 0.25);
+          this.gForce = (centripetal + GRAVITY * Math.cos(theta)) / GRAVITY;
+        }
+
+        checkTrackHealth() {
+          const tooSharp = this.lut.some((sample) => sample.radius < 16);
+          if (tooSharp && !this.app.ignoreWarnings && !this.app.suppressWarningUntilEdit) {
+            this.app.showWarning();
+          }
+        }
+      }
+
+      class AppController {
+        constructor() {
+          this.canvas = document.getElementById("simulationCanvas");
+          this.ctx = this.canvas.getContext("2d");
+          this.modeButton = document.getElementById("modeButton");
+          this.resetButton = document.getElementById("resetButton");
+          this.statsButton = document.getElementById("statsButton");
+          this.modeChip = document.getElementById("modeChip");
+          this.hintText = document.getElementById("hintText");
+          this.warningDialog = document.getElementById("warningDialog");
+          this.fixButton = document.getElementById("fixButton");
+          this.chaosButton = document.getElementById("chaosButton");
+          this.addNodeButton = document.getElementById("addNodeButton");
+          this.zoomOutButton = document.getElementById("zoomOutButton");
+          this.zoomInButton = document.getElementById("zoomInButton");
+          this.fitButton = document.getElementById("fitButton");
+          this.startVelocityInput = document.getElementById("startVelocity");
+          this.startVelocityLabel = document.getElementById("startVelocityLabel");
+          this.nerdBox = document.getElementById("nerdBox");
+          this.nerdText = document.getElementById("nerdText");
+          this.outputs = {
+            velocity: document.getElementById("velocityOut"),
+            gForce: document.getElementById("gForceOut"),
+            pe: document.getElementById("peOut"),
+            ke: document.getElementById("keOut"),
+            peBar: document.getElementById("peBar"),
+            keBar: document.getElementById("keBar"),
+            gBar: document.getElementById("gBar"),
+            pePct: document.getElementById("pePct"),
+            kePct: document.getElementById("kePct"),
+            gPct: document.getElementById("gPct")
+          };
+
+          this.width = 1000;
+          this.height = 700;
+          this.groundY = 520;
+          this.mode = "edit";
+          this.startVelocity = Number(this.startVelocityInput.value);
+          this.dragTarget = null;
+          this.isPanning = false;
+          this.panStart = null;
+          this.viewStart = null;
+          this.addNodeMode = false;
+          this.view = { x: 0, y: 0, zoom: 1 };
+          this.lastTime = performance.now();
+          this.showNerds = false;
+          this.ignoreWarnings = false;
+          this.suppressWarningUntilEdit = false;
+          this.track = [];
+          this.engine = new CoasterEngine(this);
+
+          this.installDefaultTrack();
+          this.bindEvents();
+          this.resize();
+          this.fitTrack(false);
+          this.engine.generateLUT();
+          requestAnimationFrame((time) => this.loop(time));
+        }
+
+        installDefaultTrack() {
+          this.track = [
+            { id: "A0", anchor: new Vector2D(96, 330), out: new Vector2D(180, 230) },
+            { id: "A1", anchor: new Vector2D(294, 378), in: new Vector2D(220, 470), out: new Vector2D(384, 276) },
+            { id: "A2", anchor: new Vector2D(520, 242), in: new Vector2D(438, 156), out: new Vector2D(610, 322) },
+            { id: "A3", anchor: new Vector2D(742, 430), in: new Vector2D(664, 534), out: new Vector2D(820, 326) },
+            { id: "A4", anchor: new Vector2D(928, 344), in: new Vector2D(872, 256) }
+          ];
+          this.enforceContinuity();
+        }
+
+        getSegments() {
+          const segments = [];
+          for (let i = 0; i < this.track.length - 1; i += 1) {
+            const current = this.track[i];
+            const next = this.track[i + 1];
+            segments.push(new TrackSegment(
+              current.anchor,
+              current.out || current.anchor,
+              next.in || next.anchor,
+              next.anchor,
+              `S${i}`
+            ));
+          }
+          return segments;
+        }
+
+        bindEvents() {
+          window.addEventListener("resize", () => this.resize());
+          this.canvas.addEventListener("pointerdown", (event) => this.onPointerDown(event));
+          window.addEventListener("pointermove", (event) => this.onPointerMove(event));
+          window.addEventListener("pointerup", () => this.onPointerUp());
+          this.canvas.addEventListener("wheel", (event) => this.onWheel(event), { passive: false });
+
+          this.modeButton.addEventListener("click", () => {
+            this.mode = this.mode === "edit" ? "run" : "edit";
+            if (this.mode === "run") {
+              this.engine.reset();
+              this.hintText.textContent = "Running live. The cart reverses when it runs out of climb energy.";
+            } else {
+              this.hintText.textContent = "Drag anchors or handles. Paired handles mirror each other for smooth C1 joins.";
+            }
+            this.updateModeUI();
+          });
+
+          this.resetButton.addEventListener("click", () => {
+            this.installDefaultTrack();
+            this.ignoreWarnings = false;
+            this.suppressWarningUntilEdit = false;
+            this.fitTrack(false);
+            this.engine.reset();
+            this.engine.generateLUT();
+            this.hintText.textContent = "Track reset. Drag the labelled points to make it weird.";
+          });
+
+          this.statsButton.addEventListener("click", () => {
+            this.showNerds = !this.showNerds;
+            this.nerdBox.classList.toggle("show", this.showNerds);
+          });
+
+          this.startVelocityInput.addEventListener("input", () => {
+            this.startVelocity = Number(this.startVelocityInput.value);
+            this.startVelocityLabel.textContent = `${this.startVelocity.toFixed(1)} m/s`;
+            this.engine.resetEnergy();
+            this.engine.updateTelemetry();
+          });
+
+          this.fixButton.addEventListener("click", () => {
+            this.warningDialog.classList.remove("show");
+            this.suppressWarningUntilEdit = true;
+            this.smoothTrack();
+            this.engine.generateLUT();
+            this.hintText.textContent = "Track smoothed. Warning muted until your next edit.";
+          });
+
+          this.chaosButton.addEventListener("click", () => {
+            this.ignoreWarnings = true;
+            this.warningDialog.classList.remove("show");
+            this.hintText.textContent = "Chaos accepted. The math helmet is optional today.";
+          });
+
+          this.addNodeButton.addEventListener("click", () => {
+            this.addNodeMode = !this.addNodeMode;
+            this.addNodeButton.classList.toggle("active", this.addNodeMode);
+            this.hintText.textContent = this.addNodeMode
+              ? "Add-node mode: click the sandbox to append a new labelled track point."
+              : "Drag anchors or handles. Use the wheel to zoom and empty-space drag to pan.";
+          });
+
+          this.zoomOutButton.addEventListener("click", () => this.zoomAt(new Vector2D(this.width / 2, this.height / 2), 0.86));
+          this.zoomInButton.addEventListener("click", () => this.zoomAt(new Vector2D(this.width / 2, this.height / 2), 1.16));
+          this.fitButton.addEventListener("click", () => this.fitTrack(true));
+        }
+
+        resize() {
+          const rect = this.canvas.getBoundingClientRect();
+          const ratio = window.devicePixelRatio || 1;
+          this.canvas.width = Math.floor(rect.width * ratio);
+          this.canvas.height = Math.floor(rect.height * ratio);
+          this.ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+          this.width = rect.width;
+          this.height = rect.height;
+          this.groundY = this.height * 0.75;
+          this.scaleTrackToStage();
+          this.engine.generateLUT();
+        }
+
+        scaleTrackToStage() {
+          const sx = this.width / 1024;
+          const sy = this.height / 700;
+          const currentSize = `${Math.round(this.width)}x${Math.round(this.height)}`;
+          if (this.scaledFor === currentSize) return;
+          const scaleX = this.scaledFor ? this.width / this.lastStageWidth : sx;
+          const scaleY = this.scaledFor ? this.height / this.lastStageHeight : sy;
+          this.track.forEach((node) => {
+            ["anchor", "in", "out"].forEach((key) => {
+              if (node[key]) {
+                node[key].x *= scaleX;
+                node[key].y *= scaleY;
+              }
+            });
+          });
+          this.lastStageWidth = this.width;
+          this.lastStageHeight = this.height;
+          this.scaledFor = currentSize;
+        }
+
+        canvasPoint(event) {
+          const rect = this.canvas.getBoundingClientRect();
+          return new Vector2D(event.clientX - rect.left, event.clientY - rect.top);
+        }
+
+        screenToWorld(point) {
+          return new Vector2D(
+            (point.x - this.view.x) / this.view.zoom,
+            (point.y - this.view.y) / this.view.zoom
+          );
+        }
+
+        worldToScreen(point) {
+          return new Vector2D(
+            point.x * this.view.zoom + this.view.x,
+            point.y * this.view.zoom + this.view.y
+          );
+        }
+
+        zoomAt(screenPoint, factor) {
+          const before = this.screenToWorld(screenPoint);
+          this.view.zoom = Math.max(0.35, Math.min(2.8, this.view.zoom * factor));
+          this.view.x = screenPoint.x - before.x * this.view.zoom;
+          this.view.y = screenPoint.y - before.y * this.view.zoom;
+          this.hintText.textContent = `Sandbox zoom ${(this.view.zoom * 100).toFixed(0)}%. Drag empty space to pan.`;
+        }
+
+        onWheel(event) {
+          event.preventDefault();
+          const point = this.canvasPoint(event);
+          const factor = event.deltaY > 0 ? 0.9 : 1.1;
+          this.zoomAt(point, factor);
+        }
+
+        onPointerDown(event) {
+          if (this.mode !== "edit") return;
+          const screenPoint = this.canvasPoint(event);
+          const worldPoint = this.screenToWorld(screenPoint);
+          if (this.addNodeMode) {
+            this.suppressWarningUntilEdit = false;
+            this.addNode(worldPoint);
+            this.addNodeMode = false;
+            this.addNodeButton.classList.remove("active");
+            return;
+          }
+          const handles = this.getHandles();
+          let best = null;
+          let bestDistance = 18;
+          handles.forEach((handle) => {
+            const distance = this.worldToScreen(handle.point).sub(screenPoint).mag();
+            if (distance < bestDistance) {
+              best = handle;
+              bestDistance = distance;
+            }
+          });
+          this.dragTarget = best;
+          if (!best) {
+            this.isPanning = true;
+            this.panStart = screenPoint;
+            this.viewStart = { ...this.view };
+            this.canvas.style.cursor = "grabbing";
+          }
+        }
+
+        onPointerMove(event) {
+          if (this.mode !== "edit") return;
+          const screenPoint = this.canvasPoint(event);
+          if (this.isPanning && this.panStart) {
+            this.view.x = this.viewStart.x + screenPoint.x - this.panStart.x;
+            this.view.y = this.viewStart.y + screenPoint.y - this.panStart.y;
+            return;
+          }
+          if (!this.dragTarget) return;
+          this.suppressWarningUntilEdit = false;
+          const point = this.screenToWorld(screenPoint);
+          const node = this.track[this.dragTarget.nodeIndex];
+          const previousAnchor = node.anchor.clone();
+          node[this.dragTarget.kind] = point;
+
+          if (this.dragTarget.kind === "anchor") {
+            const delta = point.sub(previousAnchor);
+            if (node.in) node.in = node.in.add(delta);
+            if (node.out) node.out = node.out.add(delta);
+          } else {
+            this.mirrorHandle(this.dragTarget.nodeIndex, this.dragTarget.kind);
+          }
+
+          this.enforceContinuity();
+          this.engine.generateLUT();
+        }
+
+        onPointerUp() {
+          this.dragTarget = null;
+          this.isPanning = false;
+          this.panStart = null;
+          this.viewStart = null;
+          this.canvas.style.cursor = "crosshair";
+        }
+
+        clampPoint(point) {
+          return new Vector2D(
+            Math.max(48, Math.min(this.width - 48, point.x)),
+            Math.max(84, Math.min(this.height - 84, point.y))
+          );
+        }
+
+        addNode(point) {
+          const lastIndex = this.track.length - 1;
+          const previous = this.track[Math.max(0, lastIndex - 1)];
+          const last = this.track[lastIndex];
+          const direction = point.sub(last.anchor).normalize();
+          const incomingLength = Math.max(48, point.sub(last.anchor).mag() * 0.32);
+          if (!last.out) {
+            const fallbackDirection = last.anchor.sub(previous.anchor).normalize();
+            last.out = last.anchor.add(fallbackDirection.mult(incomingLength));
+          }
+          const node = {
+            id: `A${this.track.length}`,
+            anchor: point,
+            in: point.sub(direction.mult(incomingLength))
+          };
+          this.track.push(node);
+          this.enforceContinuity();
+          this.engine.generateLUT();
+          this.hintText.textContent = `${node.id} added. Drag it or zoom out to keep building the track.`;
+        }
+
+        fitTrack(showHint) {
+          const points = this.track.flatMap((node) => ["anchor", "in", "out"].map((key) => node[key]).filter(Boolean));
+          if (!points.length) return;
+          const minX = Math.min(...points.map((point) => point.x));
+          const maxX = Math.max(...points.map((point) => point.x));
+          const minY = Math.min(...points.map((point) => point.y));
+          const maxY = Math.max(...points.map((point) => point.y));
+          const padding = 90;
+          const contentW = Math.max(1, maxX - minX);
+          const contentH = Math.max(1, maxY - minY);
+          const zoom = Math.max(0.35, Math.min(2.2, Math.min((this.width - padding * 2) / contentW, (this.height - padding * 2) / contentH)));
+          this.view.zoom = zoom;
+          this.view.x = (this.width - contentW * zoom) / 2 - minX * zoom;
+          this.view.y = (this.height - contentH * zoom) / 2 - minY * zoom;
+          if (showHint) this.hintText.textContent = "Track fitted. Use the wheel or +/- to zoom, then drag empty space to pan.";
+        }
+
+        mirrorHandle(index, changedKind) {
+          const node = this.track[index];
+          if (!node.in || !node.out) return;
+          const changed = node[changedKind];
+          const oppositeKind = changedKind === "in" ? "out" : "in";
+          const vector = changed.sub(node.anchor);
+          node[oppositeKind] = node.anchor.sub(vector);
+        }
+
+        enforceContinuity() {
+          for (let i = 1; i < this.track.length - 1; i += 1) {
+            const node = this.track[i];
+            if (!node.in || !node.out) continue;
+            const incoming = node.in.sub(node.anchor);
+            const outgoingLength = node.out.sub(node.anchor).mag();
+            const direction = incoming.normalize().mult(-1);
+            node.out = node.anchor.add(direction.mult(Math.max(36, outgoingLength)));
+          }
+        }
+
+        smoothTrack() {
+          for (let i = 1; i < this.track.length - 1; i += 1) {
+            const prev = this.track[i - 1].anchor;
+            const node = this.track[i].anchor;
+            const next = this.track[i + 1].anchor;
+            const direction = next.sub(prev).normalize();
+            const distanceIn = node.sub(prev).mag() * 0.34;
+            const distanceOut = next.sub(node).mag() * 0.34;
+            this.track[i].in = node.sub(direction.mult(distanceIn));
+            this.track[i].out = node.add(direction.mult(distanceOut));
+          }
+          this.ignoreWarnings = false;
+        }
+
+        getHandles() {
+          const handles = [];
+          this.track.forEach((node, nodeIndex) => {
+            handles.push({ nodeIndex, kind: "anchor", point: node.anchor, label: node.id });
+            if (node.in) handles.push({ nodeIndex, kind: "in", point: node.in, label: `${node.id}.in` });
+            if (node.out) handles.push({ nodeIndex, kind: "out", point: node.out, label: `${node.id}.out` });
+          });
+          return handles;
+        }
+
+        updateModeUI() {
+          const isRun = this.mode === "run";
+          this.modeButton.textContent = isRun ? "Edit" : "Run";
+          this.modeChip.textContent = isRun ? "Simulation" : "Edit Mode";
+        }
+
+        showWarning() {
+          this.warningDialog.classList.add("show");
+        }
+
+        loop(time) {
+          const dt = Math.min(0.033, (time - this.lastTime) / 1000);
+          this.lastTime = time;
+          if (this.mode === "run") {
+            this.engine.updatePhysics(dt);
+          } else {
+            this.engine.updateTelemetry();
+          }
+          this.render();
+          this.updateDashboard();
+          requestAnimationFrame((nextTime) => this.loop(nextTime));
+        }
+
+        render() {
+          const ctx = this.ctx;
+          ctx.clearRect(0, 0, this.width, this.height);
+          ctx.save();
+          ctx.translate(this.view.x, this.view.y);
+          ctx.scale(this.view.zoom, this.view.zoom);
+          this.drawBackdrop(ctx);
+          this.drawTrack(ctx);
+          this.drawCart(ctx);
+          if (this.mode === "edit") this.drawEditor(ctx);
+          ctx.restore();
+        }
+
+        drawBackdrop(ctx) {
+          const topLeft = this.screenToWorld(new Vector2D(-80, -80));
+          const bottomRight = this.screenToWorld(new Vector2D(this.width + 80, this.height + 80));
+          const minX = Math.min(topLeft.x, bottomRight.x);
+          const maxX = Math.max(topLeft.x, bottomRight.x);
+          const minY = Math.min(topLeft.y, bottomRight.y);
+          const maxY = Math.max(topLeft.y, bottomRight.y);
+          ctx.save();
+          ctx.strokeStyle = "rgba(22, 32, 42, 0.18)";
+          ctx.lineWidth = 2;
+          const firstY = Math.floor(minY / 80) * 80;
+          for (let y = firstY; y < Math.min(maxY, this.groundY); y += 80) {
+            ctx.beginPath();
+            ctx.moveTo(minX, y);
+            ctx.lineTo(maxX, y);
+            ctx.stroke();
+            ctx.fillStyle = "rgba(22, 32, 42, 0.55)";
+            ctx.font = "800 11px Inter, sans-serif";
+            ctx.fillText(`${Math.max(0, ((this.groundY - y) / PIXELS_PER_METER).toFixed(1))}m`, minX + 16, y - 6);
+          }
+          ctx.fillStyle = "#4eaa55";
+          ctx.fillRect(minX, this.groundY, maxX - minX, Math.max(0, maxY - this.groundY));
+          ctx.strokeStyle = "#16202a";
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.moveTo(minX, this.groundY);
+          ctx.lineTo(maxX, this.groundY);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        drawTrack(ctx) {
+          const lut = this.engine.lut;
+          if (lut.length < 2) return;
+
+          ctx.save();
+          ctx.lineJoin = "round";
+          ctx.lineCap = "round";
+
+          ctx.strokeStyle = "rgba(22, 32, 42, 0.22)";
+          ctx.lineWidth = 3;
+          for (let i = 0; i < lut.length; i += 22) {
+            const p = lut[i].position;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y + 10);
+            ctx.lineTo(p.x - 18, this.groundY);
+            ctx.stroke();
+          }
+
+          ctx.strokeStyle = "#16202a";
+          ctx.lineWidth = 17;
+          ctx.beginPath();
+          lut.forEach((sample, index) => {
+            const p = sample.position;
+            if (index === 0) ctx.moveTo(p.x, p.y);
+            else ctx.lineTo(p.x, p.y);
+          });
+          ctx.stroke();
+
+          ctx.strokeStyle = "#ffd84d";
+          ctx.lineWidth = 9;
+          ctx.beginPath();
+          lut.forEach((sample, index) => {
+            const p = sample.position;
+            if (index === 0) ctx.moveTo(p.x, p.y);
+            else ctx.lineTo(p.x, p.y);
+          });
+          ctx.stroke();
+
+          ctx.strokeStyle = "#fff";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([9, 13]);
+          ctx.beginPath();
+          lut.forEach((sample, index) => {
+            const p = sample.position;
+            if (index === 0) ctx.moveTo(p.x, p.y);
+            else ctx.lineTo(p.x, p.y);
+          });
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        drawCart(ctx) {
+          const sample = this.engine.getSampleAt(this.engine.cartDist);
+          const p = sample.position;
+          const angle = Math.atan2(sample.tangent.y, sample.tangent.x);
+          const danger = Math.abs(this.engine.gForce) > 4.5;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(angle);
+          ctx.fillStyle = danger ? "#ff3f57" : "#19b8ff";
+          ctx.strokeStyle = "#16202a";
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.roundRect(-24, -28, 48, 28, 7);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = "#fff";
+          ctx.fillRect(-12, -22, 10, 9);
+          ctx.fillRect(4, -22, 10, 9);
+          ctx.fillStyle = "#16202a";
+          [-15, 15].forEach((x) => {
+            ctx.beginPath();
+            ctx.arc(x, 4, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#fff";
+            ctx.beginPath();
+            ctx.arc(x, 4, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#16202a";
+          });
+          ctx.restore();
+        }
+
+        drawEditor(ctx) {
+          ctx.save();
+          ctx.font = "850 11px Inter, sans-serif";
+          this.getHandles().forEach((handle) => {
+            const node = this.track[handle.nodeIndex];
+            if (handle.kind !== "anchor") {
+              ctx.strokeStyle = "rgba(22, 32, 42, 0.42)";
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              ctx.moveTo(node.anchor.x, node.anchor.y);
+              ctx.lineTo(handle.point.x, handle.point.y);
+              ctx.stroke();
+            }
+          });
+
+          this.getHandles().forEach((handle) => {
+            const isAnchor = handle.kind === "anchor";
+            ctx.fillStyle = isAnchor ? "#ff3f57" : "#fff";
+            ctx.strokeStyle = "#16202a";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(handle.point.x, handle.point.y, isAnchor ? 10 : 7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = "#16202a";
+            ctx.fillText(handle.label, handle.point.x + 12, handle.point.y - 10);
+          });
+          ctx.restore();
+        }
+
+        updateDashboard() {
+          const engine = this.engine;
+          const total = Math.max(engine.energyTotal, 0.001);
+          const pePct = Math.max(0, Math.min(100, (engine.potentialEnergy / total) * 100));
+          const kePct = Math.max(0, Math.min(100, (engine.kineticEnergy / total) * 100));
+          const gPct = Math.max(0, Math.min(100, (Math.abs(engine.gForce) / 6) * 100));
+          const sample = engine.getSampleAt(engine.cartDist);
+          const theta = Math.atan2(sample.tangent.y, sample.tangent.x);
+
+          this.outputs.velocity.textContent = `${engine.velocity.toFixed(1)}`;
+          this.outputs.gForce.textContent = `${engine.gForce.toFixed(2)}`;
+          this.outputs.pe.textContent = `${engine.potentialEnergy.toFixed(0)}`;
+          this.outputs.ke.textContent = `${engine.kineticEnergy.toFixed(0)}`;
+          this.outputs.peBar.style.width = `${pePct}%`;
+          this.outputs.keBar.style.width = `${kePct}%`;
+          this.outputs.gBar.style.width = `${gPct}%`;
+          this.outputs.pePct.textContent = `${pePct.toFixed(0)}%`;
+          this.outputs.kePct.textContent = `${kePct.toFixed(0)}%`;
+          this.outputs.gPct.textContent = `${engine.gForce.toFixed(1)}G`;
+
+          if (this.showNerds) {
+            this.nerdText.innerHTML = [
+              `point: ${sample.segmentIndex ?? 0}:${(sample.t ?? 0).toFixed(2)} / dist ${engine.cartDist.toFixed(1)}px`,
+              `PE = mgh = ${CART_MASS} * ${GRAVITY} * ${((this.groundY - sample.position.y) / PIXELS_PER_METER).toFixed(2)} = ${engine.potentialEnergy.toFixed(2)}J`,
+              `KE = max(0, E_total - PE) = max(0, ${engine.energyTotal.toFixed(2)} - ${engine.potentialEnergy.toFixed(2)}) = ${engine.kineticEnergy.toFixed(2)}J`,
+              `v = sign * sqrt(2KE/m) = ${engine.velocity.toFixed(3)} m/s`,
+              `theta = atan2(tangent.y, tangent.x) = ${theta.toFixed(3)} rad`,
+              `R = ${(sample.radius / PIXELS_PER_METER).toFixed(2)}m`,
+              `G = ((v^2/R) + g*cos(theta))/g = ${engine.gForce.toFixed(3)}`
+            ].join("<br>");
+          }
+        }
+      }
+
+      window.addEventListener("load", () => {
+        const app = new AppController();
+        window.loopLabArcade = app;
+      });
+    })();
+  </script>
+</body>
+</html>
