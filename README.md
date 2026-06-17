@@ -1,4 +1,4 @@
-# Loop Lab Arcade
+# Roller-Coaster-Sim
 
 Loop Lab Arcade is a single-file, dependency-free roller coaster physics toy.
 
